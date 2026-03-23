@@ -57,78 +57,6 @@ func productExceptSelf(nums []int) []int {
 	return answer
 }
 
-func makeAndNew() {
-	p := new(int)
-	fmt.Println(*p)
-	*p = 10
-	fmt.Println(*p)
-
-	s := make([]int, 5, 10)
-	fmt.Println(s)
-	m := make(map[string]int)
-	m["key"] = 10
-	ch := make(chan int, 10)
-	close(ch)
-
-	var c chan int
-	c = make(chan int, 10)
-	close(c)
-}
-
-func arrayAndSlice() {
-	arr := [5]int{1, 2, 3, 4, 5}
-	fmt.Println(arr)
-	slice := arr[1:3]
-	fmt.Println(slice)
-	slice = append(slice, 6)
-	fmt.Println(slice)
-	slice = append(slice, 7)
-	fmt.Println(slice)
-	fmt.Sprintf("slice: %p\n", slice)
-}
-
-// 值传递，数组是值类型，修改不会影响原数组
-func modifyArray(arr [3]int) {
-	arr[0] = 10
-}
-
-// 引用传递，切片是引用类型，修改会影响原切片
-func modifySlice(slice []int) {
-	slice[0] = 10
-}
-
-func main() {
-}
-
-// abcabcbb
-func lengthOfLongestSubstring(s string) int {
-	if len(s) == 0 {
-		return 0
-	}
-	set := make(map[byte]bool, len(s))
-	l, r, ans := 0, 0, 0
-	for r < len(s) {
-		//如果当前窗口里有重复字符
-		if _, ok := set[s[r]]; ok {
-			//移动左指针直到没有重复字符；更新答案
-			for l < r {
-				delete(set, s[l])
-				l++
-				ans = max(ans, r-l)
-
-				//再判断一下当前还是否重复，不重复就直接break
-				if _, ok := set[s[r]]; !ok {
-					break
-				}
-			}
-		}
-		set[s[r]] = true
-		ans = max(ans, r-l+1)
-		r++
-	}
-	return ans
-}
-
 type ListNode struct {
 	Val  int
 	Next *ListNode
@@ -154,4 +82,222 @@ func reverseList2(head *ListNode) *ListNode {
 	head.Next.Next = head
 	head.Next = nil
 	return newHead
+}
+
+// 双向链表，头插法，
+// 双向链表的head 和tail 都是虚拟节点
+// tail 节点的前一个结点代表最久未访问的元素
+// get 直接获取
+// put 若存在，则更新，对于双向链表，则是移动到head， 也就是先删除该节点，再在head添加新节点
+// 若不存在，则直接在头部添加新节点， 若超出容量，则删除末尾节点
+// 因此有几种操作链表的方法： removeNode 、 removeTail、 addHead、moveToHead
+type DLinkedNode struct {
+	key, value int
+	pre, next  *DLinkedNode
+}
+
+func innitDlinkedNode(key, value int) *DLinkedNode {
+	return &DLinkedNode{
+		key:   key,
+		value: value,
+	}
+}
+
+type LRUCache struct {
+	cache      map[int]*DLinkedNode
+	size       int
+	capacity   int
+	head, tail *DLinkedNode
+}
+
+func Constructor(capacity int) LRUCache {
+	cache := LRUCache{
+		cache:    make(map[int]*DLinkedNode),
+		capacity: capacity,
+		size:     0,
+		head:     innitDlinkedNode(0, 0),
+		tail:     innitDlinkedNode(0, 0),
+	}
+	cache.head.next = cache.tail
+	cache.tail.next = cache.head
+	return cache
+}
+
+// 删除双向链表中间的一个元素
+func (this *LRUCache) removeNode(node *DLinkedNode) {
+	node.next.pre = node.pre
+	node.pre.next = node.next
+}
+
+// 返回移除的节点
+func (this *LRUCache) removeTail() *DLinkedNode {
+	node := this.tail.pre
+	this.removeNode(node)
+	return node
+
+}
+
+// 将一个node 添加到头节点
+func (this *LRUCache) addToHead(node *DLinkedNode) {
+	node.pre = this.head
+	node.next = this.head.next
+	this.head.next.pre = node
+	this.head.next = node
+}
+
+func (this *LRUCache) moveToHead(node *DLinkedNode) {
+	this.removeNode(node)
+	this.addToHead(node)
+}
+
+func (this *LRUCache) Get(key int) int {
+	if node, ok := this.cache[key]; ok {
+		this.moveToHead(node)
+		return node.value
+	} else {
+		return -1
+	}
+}
+
+func (this *LRUCache) Put(key int, value int) {
+	if node, ok := this.cache[key]; ok {
+		node.value = value
+		this.moveToHead(node)
+	} else {
+		node := innitDlinkedNode(key, value)
+		this.addToHead(node)
+		this.cache[key] = node
+		this.size++
+		if this.size > this.capacity {
+			removedNode := this.removeTail()
+			delete(this.cache, removedNode.key)
+			this.size--
+		}
+	}
+}
+
+func findKthLargest(nums []int, k int) int {
+
+	return 0
+}
+
+// 时间复杂度小于 O(n2)
+// 思路：
+// 1. 使用集合来存储每个数是否存在
+// 2. 遍历nums，对于nums[i] ，只要看taget-nums[i] 是否存在即可
+func twoSum(nums []int, target int) []int {
+	set := make(map[int]int, len(nums))
+	for i := 0; i < len(nums); i++ {
+		if j, ok := set[target-nums[i]]; ok {
+			return []int{i, j}
+		}
+		set[nums[i]] = i
+	}
+	return nil
+}
+
+// 88. 合并两个有序数组
+// 思路：
+// 1.双指针，从尾部开始合并
+// 2.直接合并的话，在nums1上从头开始合并会覆盖掉nums1的元素，所以考虑从尾部合并
+func merge(nums1 []int, m int, nums2 []int, n int) {
+	i := m - 1
+	j := n - 1
+	k := m + n - 1
+	for i >= 0 && j >= 0 {
+		for i >= 0 && j >= 0 && nums1[i] > nums2[j] {
+			nums1[k] = nums1[i]
+			i--
+			k--
+		}
+		for i >= 0 && j >= 0 && nums1[i] <= nums2[j] {
+			nums1[k] = nums2[j]
+			j--
+			k--
+		}
+	}
+	for i >= 0 {
+		nums1[k] = nums1[i]
+		i--
+		k--
+	}
+	for j >= 0 {
+		nums1[k] = nums2[j]
+		j--
+		k--
+	}
+}
+
+// 20. 有效的括号
+// 思路：
+// 1. 遍历字符串，若遇到左括号就入栈
+// 2. 遇到右括号，就和栈顶配对，若成功就弹出栈；若失败，则不是有效的括号字符串
+// 3. 特殊边界： 最后一定要栈为空才为有效括号，不为空说明有多余的右括号
+func isValid(s string) bool {
+	runes := make([]rune, len(s)+1)
+	tail := -1
+	for _, v := range s {
+		if v == '(' || v == '[' || v == '{' {
+			tail++
+			runes[tail] = v
+		} else {
+			if tail == -1 {
+				return false
+			}
+			switch v {
+			case ')':
+				if runes[tail] == '(' {
+					tail--
+				} else {
+					return false
+				}
+			case ']':
+				if runes[tail] == '[' {
+					tail--
+				} else {
+					return false
+				}
+			case '}':
+				if runes[tail] == '{' {
+					tail--
+				} else {
+					return false
+				}
+			}
+		}
+	}
+	return tail == -1
+}
+
+func main() {
+	// 创建一个切片作为栈
+	stack := make([]int, 0, 5)
+	stack = append(stack, 1, 2, 3, 4, 5)
+
+	fmt.Printf("初始状态:\n")
+	fmt.Printf("stack = %v\n", stack)
+	fmt.Printf("len = %d, cap = %d\n\n", len(stack), cap(stack))
+
+	// 查看底层数组（通过反射，仅用于演示）
+	fmt.Printf("底层数组中的实际值: %v\n\n", stack[:cap(stack)]) // 访问整个底层数组
+
+	// 执行 Pop 操作
+	fmt.Printf("执行: stack = stack[:len(stack)-1]\n")
+	stack = stack[:len(stack)-1]
+
+	fmt.Printf("Pop 后:\n")
+	fmt.Printf("stack = %v\n", stack)
+	fmt.Printf("len = %d, cap = %d\n\n", len(stack), cap(stack))
+
+	fmt.Printf("底层数组现在: %v\n", stack[:cap(stack)])
+	fmt.Printf("注意: 元素5仍然在底层数组中！\n\n")
+
+	// 再 Push 一个元素
+	fmt.Printf("执行 Push 6:\n")
+	stack = append(stack, 6)
+
+	fmt.Printf("Push 后:\n")
+	fmt.Printf("stack = %v\n", stack)
+	fmt.Printf("底层数组现在: %v\n", stack[:cap(stack)])
+	fmt.Printf("元素5被覆盖了！\n")
 }
